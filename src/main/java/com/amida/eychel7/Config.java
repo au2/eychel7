@@ -7,6 +7,8 @@ public class Config {
 	private static Config instance;
 
 	private HapiContext context;
+	private int port = 1011;
+	private boolean useTls = false;
 
 	private Config() {
 		context = new DefaultHapiContext();
@@ -21,6 +23,14 @@ public class Config {
 
 	public HapiContext getContext() {
 		return context;
+	}
+
+	public int getPort() {
+		return port;
+	}
+
+	public boolean getUseTls() {
+		return useTls;
 	}
 
 	@Override

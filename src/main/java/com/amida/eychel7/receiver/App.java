@@ -1,23 +1,22 @@
-package com.amida.eychel7;
+package com.amida.eychel7.receiver;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.amida.eychel7.handler.IHandler;
+
 import ca.uhn.hl7v2.HL7Exception;
 import ca.uhn.hl7v2.model.Message;
 import ca.uhn.hl7v2.protocol.ReceivingApplication;
 import ca.uhn.hl7v2.protocol.ReceivingApplicationException;
 
-/**
- * Application class for receiving ADT^A01 messages
- */
-public class ReceiverApp implements ReceivingApplication<Message> {
-	private List<IProcessedMessageReceiver> subscribers = new ArrayList<IProcessedMessageReceiver>();
+public class App implements ReceivingApplication<Message> {
+	private List<IHandler> handlers = new ArrayList<IHandler>();
 
-	public void addSubscriber(IProcessedMessageReceiver receiver) {
-		subscribers.add(receiver);
+	public void addHandler(IHandler handler) {
+		handlers.add(handler);
 	}
 
 	/**
@@ -34,8 +33,7 @@ public class ReceiverApp implements ReceivingApplication<Message> {
 	@Override
 	public Message processMessage(Message message, Map<String, Object> theMetadata)
 			throws ReceivingApplicationException, HL7Exception {
-		IProcessedMessage processedMessage = new ProcessedMessage(message);
-		subscribers.forEach(subscriber -> subscriber.receive(processedMessage));
+		handlers.forEach(handler -> handler.handle(message));
 
 		try {
 			return message.generateACK();
