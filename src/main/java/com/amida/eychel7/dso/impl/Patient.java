@@ -3,6 +3,11 @@ package com.amida.eychel7.dso.impl;
 import com.amida.eychel7.dso.DSOEnum;
 import com.amida.eychel7.dso.IDSO;
 
+import ca.uhn.hl7v2.model.v281.datatype.XPN;
+import ca.uhn.hl7v2.model.v281.segment.MSH;
+import ca.uhn.hl7v2.model.v281.segment.PID;
+import ca.uhn.hl7v2.model.v281.segment.PV1;
+
 public class Patient implements IDSO {
 	private String assigningOrganization;
 
@@ -19,6 +24,23 @@ public class Patient implements IDSO {
 	@Override
 	public DSOEnum getType() {
 		return DSOEnum.PATIENT;
+	}
+
+	public void interpret(MSH msh) {
+		assigningOrganization = msh.getSendingFacility().getNamespaceID().getValue();
+	}
+
+	public void interpret(PID pid) {
+		corporateMrn = pid.getPatientIdentifierList(0).getIDNumber().getValue();
+
+		XPN pn = pid.getPatientName()[0];
+		patientLastName = pn.getFamilyName().getSurname().getValue();
+		patientFirstName = pn.getGivenName().getValue();
+		patientMiddleName = pn.getSecondAndFurtherGivenNamesOrInitialsThereof().getValue();
+	}
+
+	public void interpret(PV1 pv1) {
+		visitNbr = pv1.getVisitNumber().getIDNumber().getValue();
 	}
 
 	public String getAssigningOrganization() {

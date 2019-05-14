@@ -2,21 +2,22 @@ package com.amida.eychel7;
 
 import java.util.List;
 
-import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.amida.eychel7.dso.DSOEnum;
 import com.amida.eychel7.dso.IDSO;
 import com.amida.eychel7.dso.impl.Allergy;
 import com.amida.eychel7.dso.impl.Patient;
+import com.amida.eychel7.dso.impl.Procedure;
 import com.amida.eychel7.handler.StoreLastHandler;
 import com.amida.eychel7.handler.impl.Handler_ADT_A01__;
+import com.amida.eychel7.handler.impl.Handler_ORU_R01__;
 import com.amida.eychel7.receiver.App;
 import com.amida.eychel7.receiver.Server;
 
-import ca.uhn.hl7v2.HapiContext;
 import ca.uhn.hl7v2.model.Message;
 import ca.uhn.hl7v2.model.v281.datatype.CWE;
 import ca.uhn.hl7v2.model.v281.datatype.XPN;
@@ -31,10 +32,10 @@ import ca.uhn.hl7v2.model.v281.segment.OBX;
 import ca.uhn.hl7v2.model.v281.segment.PID;
 
 public class BasicTest {
-	private Server server;
+	private static Server server;
 
-	@Before
-	public void startHL7Server() throws Exception {
+	@BeforeClass
+	public static void startHL7Server() throws Exception {
 		server = new Server();
 		server.start();
 	}
@@ -141,15 +142,35 @@ public class BasicTest {
 		obx.getObservationIdentifier().getText().setValue("Procedure Performed");
 		obx.getObservationIdentifier().getNameOfCodingSystem().setValue("LN");
 
-		Config config = Config.get();
-		HapiContext context = config.getContext();
-		String content = context.getPipeParser().encode(message);
+		App app = server.addApp("ORU_R01");
+		StoreLastHandler storeHandler = new StoreLastHandler(new Handler_ORU_R01__());
+		app.addHandler(storeHandler);
+		SendingApp client = new SendingApp();
+		client.send(message);
 
-		System.out.print(content);
+		Message response = storeHandler.getLastMessage();
+		Assert.assertEquals("ORU_R01", response.getName());
+		List<IDSO> dsos = storeHandler.getLastDSOs();
+
+		IDSO dso0 = dsos.get(0);
+		IDSO dso1 = dsos.get(1);
+
+		Assert.assertEquals(DSOEnum.PATIENT, dso0.getType());
+		Assert.assertEquals(DSOEnum.PROCEDURE, dso1.getType());
+
+		Patient responsePatient = (Patient) dso0;
+		Assert.assertEquals("RIH", responsePatient.getAssigningOrganization());
+		Assert.assertEquals("AMRKEL SMITH", responsePatient.getPatientLastName());
+		Assert.assertEquals("JOHN", responsePatient.getPatientFirstName());
+		Assert.assertEquals("M", responsePatient.getPatientMiddleName());
+
+		Procedure procedure = (Procedure) dso1;
+		Assert.assertEquals("80146002", procedure.getProcedureCode());
+		Assert.assertEquals("Appendectomy", procedure.getProcedureDescription());
 	}
 
-	@After
-	public void clearHL7Server() throws Exception {
+	@AfterClass
+	public static void clearHL7Server() throws Exception {
 		server.stop();
 	}
 
