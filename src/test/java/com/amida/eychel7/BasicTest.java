@@ -7,6 +7,7 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.amida.eychel7.custom.segment.ZRO;
 import com.amida.eychel7.dso.DSOEnum;
 import com.amida.eychel7.dso.IDSO;
 import com.amida.eychel7.dso.impl.Allergy;
@@ -20,6 +21,7 @@ import com.amida.eychel7.receiver.Server;
 
 import ca.uhn.hl7v2.model.Message;
 import ca.uhn.hl7v2.model.v281.datatype.CWE;
+import ca.uhn.hl7v2.model.v281.datatype.ST;
 import ca.uhn.hl7v2.model.v281.datatype.XPN;
 import ca.uhn.hl7v2.model.v281.group.ORU_R01_OBSERVATION;
 import ca.uhn.hl7v2.model.v281.group.ORU_R01_ORDER_OBSERVATION;
@@ -138,6 +140,11 @@ public class BasicTest {
 			obx.getObservationValue(1).setData(cwe);
 		}
 
+		obs.addNonstandardSegment("ZRO");
+		ZRO gs = (ZRO) obs.get("ZRO");
+		ST st = gs.getTheValue();
+		st.setValue("High");
+
 		obx.getObservationIdentifier().getIdentifier().setValue("29300-1");
 		obx.getObservationIdentifier().getText().setValue("Procedure Performed");
 		obx.getObservationIdentifier().getNameOfCodingSystem().setValue("LN");
@@ -167,6 +174,7 @@ public class BasicTest {
 		Procedure procedure = (Procedure) dso1;
 		Assert.assertEquals("80146002", procedure.getProcedureCode());
 		Assert.assertEquals("Appendectomy", procedure.getProcedureDescription());
+		Assert.assertEquals("High", procedure.getProcedurePriority());
 	}
 
 	@AfterClass

@@ -63,6 +63,7 @@ public class Server {
 
 			HapiContext context = config.getContext();
 			server = context.newServer(config.getPort(), config.getUseTls());
+			server.setShutdownTimeout(100000);
 
 			server.registerConnectionListener(new RSConnectionListener());
 			server.setExceptionHandler(new RSExceptionHandler());

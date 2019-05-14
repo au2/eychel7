@@ -33,7 +33,13 @@ public class App implements ReceivingApplication<Message> {
 	@Override
 	public Message processMessage(Message message, Map<String, Object> theMetadata)
 			throws ReceivingApplicationException, HL7Exception {
-		handlers.forEach(handler -> handler.handle(message));
+
+		handlers.forEach(handler -> {
+			try {
+				handler.handle(message);
+			} catch (Exception e) {
+			}
+		});
 
 		try {
 			return message.generateACK();

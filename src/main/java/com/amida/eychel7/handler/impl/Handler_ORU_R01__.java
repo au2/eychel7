@@ -3,6 +3,7 @@ package com.amida.eychel7.handler.impl;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.amida.eychel7.custom.segment.ZRO;
 import com.amida.eychel7.dso.IDSO;
 import com.amida.eychel7.dso.impl.Patient;
 import com.amida.eychel7.dso.impl.Procedure;
@@ -19,7 +20,7 @@ import ca.uhn.hl7v2.model.v281.segment.OBX;
 
 public class Handler_ORU_R01__ implements IHandler {
 	@Override
-	public ITargetData handle(Message message) {
+	public ITargetData handle(Message message) throws Exception {
 		ORU_R01 oru_R01 = (ORU_R01) message;
 
 		Patient patient = new Patient();
@@ -37,6 +38,10 @@ public class Handler_ORU_R01__ implements IHandler {
 		ORU_R01_OBSERVATION obxr = obs.getOBSERVATION(0);
 		OBX obx = obxr.getOBX();
 		procedure.interpret(obx);
+
+		ZRO zro = (ZRO) obxr.get("ZRO");
+		String theValue = zro.getTheValue().getValue();
+		procedure.setProcedurePriority(theValue);
 
 		List<IDSO> list = new ArrayList<IDSO>();
 		list.add(patient);

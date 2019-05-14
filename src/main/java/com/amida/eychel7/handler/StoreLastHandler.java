@@ -16,7 +16,7 @@ public class StoreLastHandler implements IHandler {
 	}
 
 	@Override
-	public ITargetData handle(Message message) {
+	public ITargetData handle(Message message) throws Exception {
 		ITargetData result = handler.handle(message);
 		lastDSOs = result.getDSOs();
 		lastMessage = result.getMessage();

@@ -1,5 +1,7 @@
 package com.amida.eychel7;
 
+import java.util.concurrent.TimeUnit;
+
 import ca.uhn.hl7v2.HapiContext;
 import ca.uhn.hl7v2.app.Connection;
 import ca.uhn.hl7v2.app.Initiator;
@@ -19,6 +21,7 @@ public class SendingApp {
 
 		Connection connection = context.newClient("localhost", config.getPort(), config.getUseTls());
 		Initiator initiator = connection.getInitiator();
+		initiator.setTimeout(100000, TimeUnit.SECONDS);
 		Message response = initiator.sendAndReceive(message);
 		connection.close();
 

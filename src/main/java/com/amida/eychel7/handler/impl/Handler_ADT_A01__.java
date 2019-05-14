@@ -14,7 +14,7 @@ import ca.uhn.hl7v2.model.v281.message.ADT_A01;
 
 public class Handler_ADT_A01__ implements IHandler {
 	@Override
-	public ITargetData handle(Message message) {
+	public ITargetData handle(Message message) throws Exception {
 		ADT_A01 adtA01 = (ADT_A01) message;
 
 		Patient patient = new Patient();
