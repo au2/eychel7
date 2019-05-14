@@ -1,16 +1,34 @@
 package com.amida.eychel7;
 
+import java.util.List;
+
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.amida.eychel7.dso.DSOEnum;
+import com.amida.eychel7.dso.IDSO;
+import com.amida.eychel7.dso.impl.Allergy;
+import com.amida.eychel7.dso.impl.Patient;
 import com.amida.eychel7.handler.StoreLastHandler;
 import com.amida.eychel7.handler.impl.Handler_ADT_A01__;
 import com.amida.eychel7.receiver.App;
 import com.amida.eychel7.receiver.Server;
 
+import ca.uhn.hl7v2.HapiContext;
 import ca.uhn.hl7v2.model.Message;
+import ca.uhn.hl7v2.model.v281.datatype.CWE;
+import ca.uhn.hl7v2.model.v281.datatype.XPN;
+import ca.uhn.hl7v2.model.v281.group.ORU_R01_OBSERVATION;
+import ca.uhn.hl7v2.model.v281.group.ORU_R01_ORDER_OBSERVATION;
+import ca.uhn.hl7v2.model.v281.group.ORU_R01_PATIENT;
+import ca.uhn.hl7v2.model.v281.group.ORU_R01_PATIENT_RESULT;
+import ca.uhn.hl7v2.model.v281.message.ORU_R01;
+import ca.uhn.hl7v2.model.v281.segment.MSH;
+import ca.uhn.hl7v2.model.v281.segment.OBR;
+import ca.uhn.hl7v2.model.v281.segment.OBX;
+import ca.uhn.hl7v2.model.v281.segment.PID;
 
 public class BasicTest {
 	private Server server;
@@ -22,7 +40,7 @@ public class BasicTest {
 	}
 
 	@Test
-	public void testFirst() throws Exception {
+	public void testADTA01() throws Exception {
 		App app = server.addApp("ADT_A01");
 		StoreLastHandler storeHandler = new StoreLastHandler(new Handler_ADT_A01__());
 		app.addHandler(storeHandler);
@@ -39,7 +57,95 @@ public class BasicTest {
 
 		Message message = storeHandler.getLastMessage();
 		Assert.assertEquals("ADT_A01", message.getName());
-		System.out.print(message.toString());
+		List<IDSO> dsos = storeHandler.getLastDSOs();
+
+		IDSO dso0 = dsos.get(0);
+		IDSO dso1 = dsos.get(1);
+
+		Assert.assertEquals(DSOEnum.PATIENT, dso0.getType());
+		Assert.assertEquals(DSOEnum.ALLERGY, dso1.getType());
+
+		Patient patient = (Patient) dso0;
+		Assert.assertEquals("RIH", patient.getAssigningOrganization());
+		Assert.assertEquals("SMITH", patient.getPatientLastName());
+		Assert.assertEquals("JOHN", patient.getPatientFirstName());
+		Assert.assertEquals("M", patient.getPatientMiddleName());
+		Assert.assertEquals("00009874", patient.getCorporateMrn());
+		Assert.assertEquals("000001916994", patient.getVisitNbr());
+
+		Allergy allergy = (Allergy) dso1;
+		Assert.assertEquals("001", allergy.getAllergyCode());
+		Assert.assertEquals("POLLEN", allergy.getAllergyDescription());
+		Assert.assertEquals("SEV", allergy.getAllergyType());
+	}
+
+	@Test
+	public void testPorcedureFromOBX() throws Exception {
+		ORU_R01 message = new ORU_R01();
+
+		message.initQuickstart("ORU", "R01", "P");
+
+		MSH msh = message.getMSH();
+		msh.getSendingFacility().getNamespaceID().setValue("RIH");
+
+		ORU_R01_PATIENT_RESULT result = message.getPATIENT_RESULT();
+		ORU_R01_PATIENT patient = result.getPATIENT();
+
+		PID pid = patient.getPID();
+
+		{
+			XPN pn = pid.getPatientName(0);
+
+			pn.getFamilyName().getSurname().setValue("AMRKEL SMITH");
+			pn.getFamilyName().getOwnSurnamePrefix().setValue("DR");
+			pn.getFamilyName().getOwnSurname().setValue("AMRKEL");
+			pn.getFamilyName().getSurnamePrefixFromPartnerSpouse().setValue("YT");
+			pn.getFamilyName().getSurnameFromPartnerSpouse().setValue("SMITH");
+
+			pn.getGivenName().setValue("JOHN");
+			pn.getSecondAndFurtherGivenNamesOrInitialsThereof().setValue("M");
+		}
+		{
+			XPN pn = pid.getPatientName(1);
+
+			pn.getFamilyName().getSurname().setValue("DOE");
+			pn.getGivenName().setValue("JOE");
+		}
+
+		ORU_R01_ORDER_OBSERVATION obs = result.getORDER_OBSERVATION(0);
+		OBR obr = obs.getOBR();
+		obr.getFillerField1().setValue("ORD");
+
+		ORU_R01_OBSERVATION obxr = obs.getOBSERVATION(0);
+		OBX obx = obxr.getOBX();
+		obx.getValueType().setValue("CWE");
+		obx.getSetIDOBX().setValue("9");
+
+		{
+			CWE cwe = new CWE(message);
+			cwe.getIdentifier().setValue("80146002");
+			cwe.getText().setValue("Appendectomy");
+			cwe.getNameOfCodingSystem().setValue("SCT");
+			obx.getObservationValue(0).setData(cwe);
+		}
+
+		{
+			CWE cwe = new CWE(message);
+			cwe.getIdentifier().setValue("3339936002");
+			cwe.getText().setValue("Exterior Appendectomy");
+			cwe.getNameOfCodingSystem().setValue("SCT");
+			obx.getObservationValue(1).setData(cwe);
+		}
+
+		obx.getObservationIdentifier().getIdentifier().setValue("29300-1");
+		obx.getObservationIdentifier().getText().setValue("Procedure Performed");
+		obx.getObservationIdentifier().getNameOfCodingSystem().setValue("LN");
+
+		Config config = Config.get();
+		HapiContext context = config.getContext();
+		String content = context.getPipeParser().encode(message);
+
+		System.out.print(content);
 	}
 
 	@After
